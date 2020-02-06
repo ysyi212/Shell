@@ -1,0 +1,43 @@
+#!/bin/bash
+. /etc/init.d/functions
+CONF_DIR=/etc/libvirt/qemu
+IMG_DIR=/var/lib/libvirt/images
+BASEVM=node
+createvm(){
+ qemu-img create -f qcow2 -b ${IMG_DIR}/.${BASEVM}.qcow2 $IMG_DIR/${1}.img 30G &> /dev/null
+ sed  "s/${BASEVM}/${1}/" ${IMG_DIR}/.${BASEVM}.xml > ${CONF_DIR}/${1}.xml
+ sudo virsh define ${CONF_DIR}/${1}.xml &> /dev/null
+ echo_success 
+ echo "VM ${1} Create"
+}
+
+read -p "Enter VM number: "   VMNUM
+
+if [ -z $VMNUM  ];then
+echo    Please enter parameters
+exit
+fi
+
+if [ -z "${VMNUM}" ]; then
+    echo "You must input a number."
+    exit 65
+elif [ $(echo ${VMNUM}*1 | bc) = 0 ]; then
+    echo "You must input a number."
+    exit 66
+elif [ ${VMNUM} -lt 1 -o ${VMNUM} -gt 99 ]; then
+    echo "Input out of range"
+    exit 67
+fi
+
+id=0
+while ((VMNUM))
+do
+ let id++
+ vm_name=$(printf "$NEWVM%02d" ${id})
+ if [ -e $IMG_DIR/${vm_name}.img ]; then
+   continue
+ else
+   createvm ${vm_name}
+ fi
+ let VMNUM--
+done
